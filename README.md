@@ -1,7 +1,7 @@
 # Easy.ts
 
 [![Badge](https://img.shields.io/badge/Typescript-blue.svg)](https://github.com/AndrewB330/)
-[![Badge](https://europe-west6-xlocc-badge.cloudfunctions.net/XLOCC/AndrewB330/Easy.ts)](https://github.com/AndrewB330/)
+[![Badge](https://europe-west6-xlocc-badge.cloudfunctions.net/XLOCC/AndrewB330/Easy.ts?k=0)](https://github.com/AndrewB330/)
 
 Library that contains three modules:
 

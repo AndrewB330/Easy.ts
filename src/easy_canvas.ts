@@ -157,6 +157,6 @@ export class EasyCanvas {
             Math.round(this.cameraTarget[0]),
             Math.round(this.cameraTarget[1])
         );
-        //this.ctx.translate(0.5, 0.5);
+        this.ctx.translate(0.5, 0.5);
     }
 }
