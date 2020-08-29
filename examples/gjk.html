@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<canvas id="main"></canvas>
+<script type="module">
+    import {EasyCanvas} from "../out/easy_canvas.js";
+    import {V} from "../out/easy_vec.js";
+    const easyCanvas = new EasyCanvas("main");
+    easyCanvas.fitToScreen();
+    easyCanvas.enableDrag();
+    easyCanvas.enableZoom();
+
+    let pos = V.ZERO2;
+
+    let poly1 = [
+        [-100, -100],
+        [100, -100],
+        [100, 100],
+        [-100, 100],
+    ];
+
+    let poly2 = [];
+
+    for(let i = 0; i < 64; i++) {
+        const angle = Math.PI * 2 * i / 64;
+        const dir = [Math.cos(angle), Math.sin(angle)];
+        poly2.push(V.mul(dir, 50));
+    }
+    poly2 = poly1;
+
+
+    easyCanvas.mouseCallback("mousemove", (mouse) => {
+        pos = mouse;
+    });
+
+    function transform1(p) {
+        return V.add(p, [0, -200]);
+    }
+
+    function transform2(p) {
+        return V.add(V.mul(p, 0.75), pos);
+    }
+
+    function transform3(p) {
+        return V.add(p, fixed);
+    }
+
+    function supporting(poly, dir) {
+        let max = poly[0];
+        poly.forEach(p => {
+            if (V.dot(p, dir) > V.dot(max, dir)) max = p;
+        });
+        return max;
+    }
+
+    function diff_supporting(poly1, poly2, dir) {
+        return V.sub(supporting(poly1, dir), supporting(poly2, V.mul(dir, -1)));
+    }
+
+    function diff_minkowski(poly1, poly2) {
+        const res = [];
+        for(let i = 0; i < 64; i++) {
+            const angle = Math.PI * 2 * i / 64;
+            const dir = [Math.cos(angle), Math.sin(angle)];
+            res.push(diff_supporting(poly1, poly2, dir));
+        }
+        return res;
+    }
+
+    let animating = false;
+    let fixed = [0, 0];
+    easyCanvas.mouseCallback("mousedown", (mouse) => {
+        fixed = mouse;
+        animating = true;
+    });
+
+    let frame = 0;
+    let vertices = [];
+    let expanding_dir = [];
+
+    function init(p1, p2) {
+        vertices = [];
+        vertices.push(diff_supporting(p1, p2, [1, 1]));
+        vertices.push(diff_supporting(p1, p2, [-1, -1]));
+    }
+
+    function step(p1, p2) {
+        console.log('step');
+        let inside = true;
+        let delta = 0.0;
+        for(let i = 0; i < vertices.length; i++) {
+            let j = (i + 1) % vertices.length;
+            const v1 = vertices[i];
+            const v2 = vertices[j];
+            const proj = V.dot(V.sub(v2, v1), V.mul(v1, -1)) / V.lengthSqr(V.sub(v2, v1));
+            if (proj >= 1.0 || proj <= 0) {
+                continue;
+            }
+            if (V.cross2(V.sub(v2, v1), V.mul(v1, -1)) <= 0) {
+                inside = false;
+            } else {
+                continue;
+            }
+            const dir = V.rotateXY(V.sub(v1, v2));
+            const supporting = diff_supporting(p1, p2, dir);
+            expanding_dir = supporting;
+            vertices.splice(i+1, 0, supporting);
+            delta = V.cross2(V.sub(v2, v1), V.mul(v1, -1));
+            break;
+        }
+    }
+
+    easyCanvas.renderCallback(() => {
+        easyCanvas.clear();
+        easyCanvas.circleFill([0, 0], 4, '#ce2c2c');
+        const poly1t = poly1.map(transform1);
+
+        if (animating) {
+            const poly2t = poly2.map(transform3);
+            if (frame === 0) {
+                init(poly1t, poly2t);
+            } else if (frame % 100 === 0) {
+                step(poly1t, poly2t);
+            }
+            easyCanvas.line(poly1t, 4, '#3877c1', [], true);
+            easyCanvas.line([V.ZERO2, expanding_dir], 3, '#dc3c3c', [], true);
+            easyCanvas.line(poly2t, 4, '#34a151', [], true);
+            easyCanvas.line(diff_minkowski(poly1t, poly2t), 3, '#404040', [4, 4], true);
+            easyCanvas.line(vertices, 3, '#3cdcd7', [], true);
+            frame++;
+        } else {
+            const poly2t = poly2.map(transform2);
+            easyCanvas.line(poly1t, 4, '#3877c1', [], true);
+            easyCanvas.line(poly2t, 4, '#34a151', [], true);
+            easyCanvas.line(diff_minkowski(poly1t, poly2t), 1, '#404040', [4, 4], true);
+        }
+    })
+</script>
+</body>
+</html>
