@@ -26,12 +26,11 @@
 
     let poly2 = [];
 
-    for(let i = 0; i < 64; i++) {
-        const angle = Math.PI * 2 * i / 64;
+    for(let i = 0; i < 8; i++) {
+        const angle = Math.PI * 2 * i / 8   ;
         const dir = [Math.cos(angle), Math.sin(angle)];
         poly2.push(V.mul(dir, 50));
     }
-    poly2 = poly1;
 
 
     easyCanvas.mouseCallback("mousemove", (mouse) => {

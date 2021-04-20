@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cover Tree</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="main"></canvas>
+<script type="module">
+  import {EasyCanvas} from "../out/easy_canvas.js";
+  import {V} from "../out/easy_vec.js";
+
+  const easyCanvas = new EasyCanvas("main");
+  easyCanvas.fitToScreen();
+  //easyCanvas.enableDrag();
+  easyCanvas.enableZoom();
+
+  class Node {
+    constructor(level, point, parent = undefined) {
+      this.point = point.slice();
+      this.children = [];
+      this.parent = parent;
+      this.level = level;
+      this.distance = Math.pow(2, level);
+    }
+
+    add(point) {
+      if (this.children.length > 0) {
+        for (const child of this.children) {
+          if (V.length(V.sub(point, child.point)) < child.distance) {
+            child.add(point);
+            return;
+          }
+        }
+      }
+      this.children.push(new Node(this.level - 1, point, this));
+    }
+
+    draw() {
+      for (const child of this.children) {
+        if (state === 'ADD2')
+          easyCanvas.line([this.point, child.point], 1, '#a8a8a8', [5, 5]);
+        child.draw();
+      }
+      easyCanvas.circleFill(this.point, 2, '#c1c1c1');
+    }
+
+    drawAdd(point) {
+      /*if (state === 'ADD2')
+        easyCanvas.circle(this.point, this.distance, 2, '#d40505', [3, 3]);*/
+      if (this.children.length > 0) {
+        for (const child of this.children) {
+          easyCanvas.circleFill(child.point, 6, '#3e9fdc');
+          if (V.length(V.sub(point, child.point)) < child.distance) {
+            //easyCanvas.circle(child.point, child.distance, 3, '#c73f3f', [2, 2]);
+            easyCanvas.line([this.point, child.point], 3, '#3e9fdc', [2, 2]);
+            child.drawAdd(point);
+            easyCanvas.circleFill(this.point, 8, '#3e9fdc');
+            return;
+          }
+        }
+      }
+
+      easyCanvas.line([this.point, point], 3, '#3e9fdc', [2, 2]);
+      easyCanvas.circleFill(point, 6, '#d40505');
+      easyCanvas.circleFill(this.point, 6, '#3e9fdc');
+    }
+
+    drawNearest(point, approximation = 1e9) {
+      easyCanvas.circleFill(this.point, 5, '#3e9fdc');
+
+      let res = this.point.slice();
+
+      const dist = V.length(V.sub(point, this.point));
+
+      if (dist < approximation)
+        approximation = dist;
+
+      if (dist > 2 * this.distance + approximation)
+        return [res, approximation];
+
+      this.children.sort((a, b) => V.length(V.sub(a.point, point)) - V.length(V.sub(b.point, point)));
+
+      for (const child of this.children) {
+        const [new_res, new_approximation] = child.drawNearest(point, approximation);
+        if (new_approximation < approximation) {
+          approximation = new_approximation;
+          res = new_res;
+        }
+
+        if (V.length(V.sub(child.point, point)) > 2 * child.distance + approximation) {
+          break;
+        }
+      }
+
+      return [res, approximation];
+    }
+
+    drawInRadius(point, radius) {
+      easyCanvas.circleFill(this.point, 5, '#3e9fdc');
+
+      const dist = V.length(V.sub(point, this.point));
+
+      if (dist < radius)
+        easyCanvas.circleFill(this.point, 5, '#27d422');
+
+      if (dist > 2 * this.distance + radius)
+        return;
+
+      this.children.sort((a, b) => V.length(V.sub(a.point, point)) - V.length(V.sub(b.point, point)));
+
+      for (const child of this.children) {
+        child.drawInRadius(point, radius);
+
+        if (V.length(V.sub(child.point, point)) > 2 * child.distance + radius) {
+          break;
+        }
+      }
+    }
+  }
+
+  class CoverTree {
+    constructor(levels_num = 13) {
+      this.levels_num = levels_num;
+      this.root = undefined;
+    }
+
+    add(point) {
+      if (!this.root) {
+        this.root = new Node(this.levels_num - 1, point);
+        return;
+      }
+
+      if (V.length(V.sub(point, this.root.point)) > this.root.distance) {
+        return; // too far
+      }
+
+      this.root.add(point);
+    }
+
+    draw() {
+      if (this.root)
+        this.root.draw();
+    }
+
+    drawAdd(point) {
+      if (this.root)
+        this.root.drawAdd(point);
+    }
+
+    drawNearest(point) {
+      if (this.root) {
+        const [res, _] = this.root.drawNearest(point);
+        easyCanvas.line([res, point], 3, '#27d422', [2, 2]);
+        easyCanvas.circleFill(point, 6, '#e05151');
+        easyCanvas.circleFill(res, 8, '#27d422');
+      }
+    }
+
+    drawInRadius(point, radius = 128) {
+      if (this.root) {
+        this.root.drawInRadius(point, radius);
+        easyCanvas.circle(point, radius, 2, '#e05151');
+        easyCanvas.circleFill(point, 6, '#e05151');
+      }
+    }
+  }
+
+  const tree = new CoverTree();
+
+  for (let i = 0; i < 2000; i++) {
+    tree.add([(Math.random() - 0.5) * easyCanvas.canvas.width * 0.95, (Math.random() - 0.5) * easyCanvas.canvas.height * 0.95]);
+  }
+
+  let curMouse = [0, 0];
+
+  easyCanvas.mouseCallback("mousemove", (mouse) => {
+    curMouse = mouse.slice();
+  });
+
+  let state = '';
+
+  document.addEventListener('keypress', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+      state = 'ADD';
+    }
+    if (e.key === 'w' || e.key === 'W') {
+      state = 'NEAREST';
+    }
+    if (e.key === 'e' || e.key === 'E') {
+      state = 'RADIUS';
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      state = 'ADD2';
+    }
+  });
+
+  document.addEventListener('keypress', (e) => {
+    const keys = ['a', 's', 'd', 'f', 'g', 'h'];
+    const sizes = [50, 200, 1000, 4000, 10000, 20000];
+    for(let i = 0; i < keys.length; i++) {
+        if (e.key === keys[i]) {
+          tree.root = undefined;
+          for (let j = 0; j < sizes[i]; j++) {
+            tree.add([(Math.random() - 0.5) * easyCanvas.canvas.width * 0.95, (Math.random() - 0.5) * easyCanvas.canvas.height * 0.95]);
+          }
+        }
+    }
+  });
+
+
+  easyCanvas.mouseCallback("mouseup", (mouse) => {
+    if (state === 'ADD' || state === 'ADD2')
+        tree.add(mouse);
+  });
+
+  easyCanvas.renderCallback(() => {
+    easyCanvas.clear('#1f1f1f');
+
+    tree.draw();
+    switch (state) {
+      case 'ADD':
+      case 'ADD2':
+        tree.drawAdd(curMouse);
+        break;
+      case 'NEAREST':
+        tree.drawNearest(curMouse);
+        break;
+      case 'RADIUS':
+        tree.drawInRadius(curMouse);
+        break;
+    }
+
+  })
+</script>
+</body>
+</html>

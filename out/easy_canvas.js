@@ -58,8 +58,10 @@ var EasyCanvas = /** @class */ (function () {
         this.cameraTarget = cameraTarget;
         this.updateTransform();
     };
-    EasyCanvas.prototype.clear = function () {
+    EasyCanvas.prototype.clear = function (color) {
         this.ctx.clearRect(-(this.canvas.width * 0.5 + 5) / this.scale - this.cameraTarget[0], -(this.canvas.height * 0.5 + 5) / this.scale - this.cameraTarget[1], (this.canvas.width + 10) / this.scale, (this.canvas.height + 10) / this.scale);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(-(this.canvas.width * 0.5 + 5) / this.scale - this.cameraTarget[0], -(this.canvas.height * 0.5 + 5) / this.scale - this.cameraTarget[1], (this.canvas.width + 10) / this.scale, (this.canvas.height + 10) / this.scale);
     };
     EasyCanvas.prototype.renderCallback = function (callback) {
         var prevTimestamp = Date.now();
@@ -136,7 +138,7 @@ var EasyCanvas = /** @class */ (function () {
         this.ctx.translate(Math.round(this.canvas.width / 2), Math.round(this.canvas.height / 2));
         this.ctx.scale(this.scale, this.scale);
         this.ctx.translate(Math.round(this.cameraTarget[0]), Math.round(this.cameraTarget[1]));
-        //this.ctx.translate(0.5, 0.5);
+        this.ctx.translate(0.5, 0.5);
     };
     return EasyCanvas;
 }());

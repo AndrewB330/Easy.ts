@@ -73,8 +73,15 @@ export class EasyCanvas {
         this.updateTransform();
     }
 
-    clear() {
+    clear(color) {
         this.ctx.clearRect(
+            -(this.canvas.width * 0.5 + 5) / this.scale - this.cameraTarget[0],
+            -(this.canvas.height * 0.5 + 5) / this.scale - this.cameraTarget[1],
+            (this.canvas.width + 10) / this.scale,
+            (this.canvas.height + 10) / this.scale
+        );
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(
             -(this.canvas.width * 0.5 + 5) / this.scale - this.cameraTarget[0],
             -(this.canvas.height * 0.5 + 5) / this.scale - this.cameraTarget[1],
             (this.canvas.width + 10) / this.scale,
